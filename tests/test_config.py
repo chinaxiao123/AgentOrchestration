@@ -32,6 +32,36 @@ class TestConfig:
         assert data["key1"] == "value1"
         assert data["key2"] == "value2"
 
+    def test_nested_object_isolation(self):
+        """Config must own caller-provided dicts via deep copy."""
+        inner = {"token": "secret"}
+        config = Config()
+        config.set("nested", inner)
+        inner["token"] = "leaked"
+        assert config.get("nested.token") == "secret", \
+            "Mutating caller data after set() should not affect Config"
+
+    def test_to_dict_isolation(self):
+        """to_dict must return a copy, not the internal dict."""
+        config = Config()
+        config.set("x", 1)
+        d = config.to_dict()
+        d["x"] = 99
+        assert config.get("x") == 1, \
+            "Mutating the dict returned by to_dict should not affect Config"
+
+    def test_load_nested_isolation(self, tmp_path):
+        """Config must deep-copy JSON-loaded data so callers cannot mutate internals."""
+        cfg_data = {"db": {"host": "prod.example.com"}}
+        config_file = tmp_path / "config.json"
+        import json
+        config_file.write_text(json.dumps(cfg_data))
+        config = Config(str(config_file))
+        # External code gets the dict, modifies it
+        cfg_data["db"]["host"] = "evil.example.com"
+        assert config.get("db.host") == "prod.example.com", \
+            "Mutating the source dict after load() should not affect Config"
+
 # 2019-02-01T18:58:35 update
 
 # 2019-07-31T13:45:15 update

@@ -1,7 +1,8 @@
 """Configuration management module."""
 
-import os
+import copy
 import json
+import os
 from typing import Any, Dict, Optional
 
 
@@ -14,7 +15,7 @@ class Config:
 
     def load(self, path: str) -> None:
         with open(path) as f:
-            self._data = json.load(f)
+            self._data = copy.deepcopy(json.load(f))
 
     def _load_env_overrides(self) -> None:
         prefix = "AO_"
@@ -30,7 +31,7 @@ class Config:
             if part not in current:
                 current[part] = {}
             current = current[part]
-        current[parts[-1]] = value
+        current[parts[-1]] = copy.deepcopy(value)
 
     def get(self, key: str, default: Any = None) -> Any:
         parts = key.split(".")
@@ -45,10 +46,10 @@ class Config:
         return current
 
     def set(self, key: str, value: Any) -> None:
-        self._set_nested(key, value)
+        self._set_nested(key, copy.deepcopy(value))
 
     def to_dict(self) -> Dict:
-        return self._data
+        return copy.deepcopy(self._data)
 
 # 2019-03-14T15:29:32 update
 
